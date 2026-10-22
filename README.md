@@ -59,12 +59,17 @@ python -m pytest -q             # end-to-end tests with fixture records
 
 Try it with fake data: `DATABASE_URL=sqlite:////tmp/demo.db DEMO=1 python -m offmarket demo` then `serve` with the same env.
 
-## Hosting
+## Hosting (free)
 
-Needs an always-on machine with outbound internet to the feed, `data.cityofnewyork.us`, `data.ny.gov` and
-`geosearch.planninglabs.nyc`. Deploy the Dockerfile (Render, Railway, Fly.io or a small VPS) with a Postgres
-`DATABASE_URL` and `DASHBOARD_PASSWORD`. Use an always-on plan so the 6am job runs; or set `ENABLE_SCHEDULER=0`
-and call `scripts/run_daily.sh` from the host's scheduler.
+- **Website:** Render free web service from `render.yaml` (Deploy to Render). Free services sleep after ~15
+  minutes idle, so the first visit after a break takes about a minute to load.
+- **Database:** Neon free Postgres (neon.tech). Paste its connection string as `DATABASE_URL` in Render and
+  as a GitHub repository secret. (Render's own free Postgres is deleted after 30 days, so it isn't used.)
+- **6am refresh:** GitHub Actions (`.github/workflows/daily.yml`) runs `python -m offmarket run` every day
+  against the same database; there's also a "Run workflow" button. The site's own scheduler is off
+  (`ENABLE_SCHEDULER=0`). The "Refresh now" button on the site still works while the site is awake.
+
+Paid alternative: any always-on container host with `ENABLE_SCHEDULER=1` runs everything in one service.
 
 ## Compliance
 
