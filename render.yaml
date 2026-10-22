@@ -1,0 +1,35 @@
+# One-click deploy on Render: one always-on web service with a small disk for the database.
+# The website and the 6am refresh run in the same service.
+services:
+  - type: web
+    name: off-market-leads
+    runtime: docker
+    plan: starter
+    healthCheckPath: /healthz
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////var/data/offmarket.db
+      - key: TZ
+        value: America/New_York
+      - key: DASHBOARD_USER
+        value: broker
+      - key: DASHBOARD_PASSWORD
+        generateValue: true
+      - key: DAILY_RUN_HOUR
+        value: "6"
+      - key: RESO_BASE_URL
+        sync: false
+      - key: RESO_TOKEN_URL
+        sync: false
+      - key: RESO_CLIENT_ID
+        sync: false
+      - key: RESO_CLIENT_SECRET
+        sync: false
+      - key: BATCHDATA_API_KEY
+        sync: false
+      - key: SOCRATA_APP_TOKEN
+        sync: false
