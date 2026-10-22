@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Letter · {{ l.address }}{% endblock %}
+{% block content %}
+<p class="small no-print"><a href="/listing/{{ l.id }}">← {{ l.address }}{% if l.unit %} #{{ l.unit }}{% endif %}</a></p>
+<div class="head no-print">
+  <div><h1>Owner letter</h1>
+    <p class="muted small">{{ 'Written by Claude for this property.' if by_claude else 'Template letter. Add an Anthropic key to have Claude tailor each one.' }}
+      Edit freely, then print or copy.</p></div>
+  <div class="actions"><button onclick="window.print()">Print</button>
+    <button class="ghost" onclick="navigator.clipboard.writeText(document.getElementById('t').innerText)">Copy</button></div>
+</div>
+{% set mail = owners|selectattr('mailing_address')|list %}
+{% if mail %}<p class="small muted no-print">Mail to: {{ mail[0].name }}, {{ mail[0].mailing_address }}</p>{% endif %}
+<div class="letter" id="t" contenteditable="true">{{ text }}</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="head">
+  <div>
+    <h1>Pulled off the market, not sold</h1>
+    <div class="muted small">Residential listings over the price floor that left the market with no recorded sale.
+      {% if last_run %}Last refresh {{ last_run|d("%b %d, %-I:%M %p") }} UTC.{% else %}No refresh has run yet.{% endif %}
+      {% if running %}<b>Refreshing now…</b>{% endif %}</div>
+  </div>
+  <div class="actions no-print">
+    <a class="btn ghost" href="/export.csv?{{ qs }}">Export CSV</a>
+    <form class="inline" method="post" action="/run"><button {{ 'disabled' if running }}>Refresh now</button></form>
+  </div>
+</div>
+
+{% if not feed_on %}
+<div class="warnbox">No listing feed is connected yet, so the daily refresh only re-checks public records.
+  Connect the RLS feed or upload a listings export on <a href="/sources">Data &amp; imports</a>.</div>
+{% endif %}
+
+<div class="kpis">
+  <a class="kpi hot" href="/?tier=Hot"><b>{{ tiers.get('Hot', 0) }}</b><span>Hot leads</span></a>
+  <a class="kpi warm" href="/?tier=Warm"><b>{{ tiers.get('Warm', 0) }}</b><span>Warm leads</span></a>
+  <a class="kpi" href="/?days=7"><b>{{ week }}</b><span>Came off in the last 7 days</span></a>
+  <a class="kpi" href="/?view=contract"><b>{{ counts.get('contract_off', 0) }}</b><span>Out of contract, awaiting records</span></a>
+  <a class="kpi" href="/?view=sold"><b>{{ counts.get('sold', 0) }}</b><span>Sold, filtered out</span></a>
+  <a class="kpi" href="/?view=active"><b>{{ counts.get('active', 0) }}</b><span>On the market, watching</span></a>
+</div>
+
+<div class="tabs">
+  {% for key, (label, states) in VIEWS.items() %}
+  <a href="/?view={{ key }}" class="{{ 'on' if f.view == key }}">{{ label }}{% set ns = namespace(n=0) %}{% for s in states %}{% set ns.n = ns.n + counts.get(s, 0) %}{% endfor %}<span>{{ ns.n }}</span></a>
+  {% endfor %}
+</div>
+
+<form class="filters no-print" method="get">
+  <input type="hidden" name="view" value="{{ f.view }}">
+  <input type="search" name="q" value="{{ f.q }}" placeholder="Address, owner, building, broker…">
+  <select name="area"><option value="">All areas</option>
+    {% for a in areas %}<option {{ 'selected' if f.area == a }}>{{ a }}</option>{% endfor %}</select>
+  <select name="type"><option value="">All types</option>
+    {% for t in types %}<option {{ 'selected' if f.type == t }}>{{ t }}</option>{% endfor %}</select>
+  <input class="short" name="min" value="{{ f.min }}" placeholder="Min $M">
+  <input class="short" name="max" value="{{ f.max }}" placeholder="Max $M">
+  <select name="days"><option value="">Any time</option>
+    {% for d, l in [('7','Last 7 days'),('30','Last 30 days'),('90','Last 90 days'),('180','Last 6 months'),('365','Last year')] %}
+    <option value="{{ d }}" {{ 'selected' if f.days == d }}>Off market: {{ l }}</option>{% endfor %}</select>
+  <select name="tier"><option value="">All tiers</option>
+    {% for t in ['Hot','Warm','Watch'] %}<option {{ 'selected' if f.tier == t }}>{{ t }}</option>{% endfor %}</select>
+  <select name="contact"><option value="">Any contact info</option>
+    <option value="phone" {{ 'selected' if f.contact == 'phone' }}>Has callable phone</option>
+    <option value="any" {{ 'selected' if f.contact == 'any' }}>Has phone, email or mailing address</option></select>
+  <select name="status"><option value="">Open (not dismissed)</option>
+    {% for s in LEAD_STATUSES %}<option {{ 'selected' if f.status == s }}>{{ s }}</option>{% endfor %}</select>
+  <select name="sort">
+    {% for v, l in [('','Best leads first'),('off','Most recently pulled'),('price','Highest price'),('dom','Longest on market')] %}
+    <option value="{{ v }}" {{ 'selected' if f.sort == v }}>{{ l }}</option>{% endfor %}</select>
+  <button>Filter</button>
+</form>
+
+<div class="count"><span>{{ total }} listing{{ '' if total == 1 else 's' }}</span></div>
+
+{% if rows %}
+<div class="table-wrap">
+<table class="leads">
+  <thead><tr>
+    <th>Score</th><th>Property</th><th class="hide-sm">Type</th><th>Asking</th><th>Off market</th>
+    <th class="hide-sm">Days listed</th><th>Owner</th><th>Contact</th><th class="hide-sm">Status</th>
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}
+  {% set os = owners.get(r.id, []) %}{% set cf = cflags.get(r.id) %}
+  <tr onclick="location.href='/listing/{{ r.id }}'">
+    <td><span class="tier {{ r.tier or 'Watch' }}">{{ r.score or 0 }} · {{ r.tier or 'Watch' }}</span></td>
+    <td><a class="addr" href="/listing/{{ r.id }}">{{ r.address }}{% if r.unit %} #{{ r.unit }}{% endif %}</a>
+      <div class="sub">{{ r.neighborhood or r.borough }}{% if r.beds %} · {{ r.beds|int }} bd{% endif %}{% if r.baths %} · {{ r.baths|int }} ba{% endif %}{% if r.sqft %} · {{ '{:,}'.format(r.sqft) }} ft²{% endif %}</div></td>
+    <td class="hide-sm">{{ r.property_type }}</td>
+    <td class="num"><b>{{ r.list_price|money }}</b>
+      {% if r.high_price and r.list_price and r.high_price > r.list_price %}<div class="sub">from {{ r.high_price|money }}</div>{% endif %}</td>
+    <td>{{ r.off_date|d("%b %d") }}<div class="sub">{{ r.off_reason or r.state }}{% if r.prior_pulls %} · failed {{ r.prior_pulls + 1 }}×{% endif %}</div></td>
+    <td class="hide-sm num">{{ r.days_on_market or '—' }}</td>
+    <td>{% if os %}{{ os[0].name }}{% if os|length > 1 %} <span class="muted">+{{ os|length - 1 }}</span>{% endif %}
+        {% if os[0].is_entity %}<div class="sub">LLC / trust</div>{% endif %}
+      {% elif r.owner_checked_at %}<span class="muted">Not in deed records</span>
+      {% else %}<span class="muted">Pending lookup</span>{% endif %}</td>
+    <td>{% if cf and cf.phone %}<span class="pill ok">📞 {{ cf.phone }}</span>{% endif %}
+      {% if cf and cf.email %}<span class="pill ok">✉ {{ cf.email }}</span>{% endif %}
+      {% if cf and cf.dnc and not cf.phone %}<span class="pill err">DNC only</span>{% endif %}
+      {% if not cf %}{% if os and os[0].mailing_address %}<span class="pill">Mail</span>{% else %}<span class="muted">—</span>{% endif %}{% endif %}</td>
+    <td class="hide-sm"><span class="pill {{ 'ok' if r.lead_status in ('Meeting','Signed') else '' }}">{{ r.lead_status }}</span></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if pages > 1 %}
+<div class="pager">
+  {% if page > 1 %}<a class="btn ghost" href="/?{{ qs }}&page={{ page - 1 }}">← Prev</a>{% endif %}
+  <span class="muted">Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}<a class="btn ghost" href="/?{{ qs }}&page={{ page + 1 }}">Next →</a>{% endif %}
+</div>
+{% endif %}
+{% else %}
+<div class="card empty">
+  {% if has_any %}Nothing matches these filters.
+  {% else %}No listings yet. Connect the listing feed or upload an export on <a href="/sources">Data &amp; imports</a>,
+  then press Refresh now.{% endif %}
+</div>
+{% endif %}
+{% endblock %}

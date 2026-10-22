@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Data & imports{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Data &amp; imports</h1>
+    <p class="muted">Refreshes every morning at {{ config.DAILY_RUN_HOUR }}:00 New York time.</p></div>
+  <form method="post" action="/run"><button {{ 'disabled' if running }}>{{ 'Refreshing…' if running else 'Refresh now' }}</button></form>
+</div>
+
+<div class="grid">
+<div>
+  <div class="card">
+    <h2>Listings</h2>
+    <table>
+      <tr><td><b>{{ feed_label }}</b><div class="sub">Daily: everything $5M+ on the market, plus every status change (expired, withdrawn, closed).
+        Covers what RLS members list, which is nearly every Manhattan and Brooklyn luxury listing (StreetEasy is fed from it).</div></td>
+        <td>{% if feed_on %}<span class="pill ok">Connected</span>{% else %}<span class="pill warn">Needs credentials</span>{% endif %}</td>
+        <td class="num">{{ by_source.get('reso', 0) }}</td></tr>
+      <tr><td><b>Spreadsheet import</b><div class="sub">Exports from RLS, Perchwell, OneKey MLS or your CRM.</div></td>
+        <td><span class="pill ok">Ready</span></td><td class="num">{{ by_source.get('csv', 0) }}</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Upload a listings export</h2>
+    <form method="post" action="/import" enctype="multipart/form-data">
+      <input type="file" name="file" accept=".csv,text/csv" required>
+      <label class="row"><input type="checkbox" name="full_snapshot"> This file is everything active today (listings missing from it have left the market)</label>
+      <button>Import</button>
+    </form>
+    <p class="small muted">Needs an address and a price column; unit, status (Expired / Withdrawn / Sold…), list date, original price,
+      neighborhood, agent and office are used when present. Column names are matched loosely.</p>
+  </div>
+
+  <div class="card">
+    <h2>Recent runs</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>When (UTC)</th><th>Step</th><th>Result</th><th>Details</th></tr></thead>
+      <tbody>{% for r in history %}
+      <tr><td class="num small">{{ r.started_at|d("%b %d %H:%M") }}</td><td>{{ r.step }}</td>
+        <td><span class="pill {{ 'ok' if r.status == 'ok' else 'err' if r.status == 'error' else '' }}">{{ r.status }}</span></td>
+        <td class="small">{% if r.stats %}{% for k, v in r.stats.items() if v %}{{ k }}: {{ v }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}
+          {% if r.message %}<pre class="err">{{ r.message }}</pre>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="4" class="muted">No runs yet.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+
+<div>
+  <div class="card">
+    <h2>Public records (free)</h2>
+    <table>
+      <tr><td><b>ACRIS deeds &amp; co-op transfers</b><div class="sub">Sold check and owner of record, with mailing address</div></td><td><span class="pill ok">On</span></td></tr>
+      <tr><td><b>DOF rolling sales</b><div class="sub">Second sold check, includes co-ops</div></td><td><span class="pill ok">On</span></td></tr>
+      <tr><td><b>NY DOS corporations</b><div class="sub">People behind LLC owners</div></td><td><span class="pill ok">On</span></td></tr>
+      <tr><td><b>NYC GeoSearch</b><div class="sub">Tax lot (BBL) for each address</div></td><td><span class="pill ok">On</span></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Paid add-ons</h2>
+    <table>
+      <tr><td><b>BatchData skip trace</b><div class="sub">Owner phones and emails, with Do Not Call flags. Billed per match.</div></td>
+        <td>{% if skiptrace_on %}<span class="pill ok">On</span>{% else %}<span class="pill">Off</span>{% endif %}</td></tr>
+      <tr><td><b>Claude letters</b><div class="sub">Tailored owner letters (a template is used otherwise)</div></td>
+        <td>{% if claude_on %}<span class="pill ok">On</span>{% else %}<span class="pill">Off</span>{% endif %}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Sites this does not scrape</h2>
+    <p class="small">StreetEasy, Zillow, Realtor.com, Redfin, Compass and brokerage sites forbid automated collection in their terms
+      and actively block it. Their luxury inventory comes from the same RLS listings this site reads directly, so the feed covers
+      them without the legal or reliability risk.</p>
+  </div>
+</div>
+</div>
+{% endblock %}

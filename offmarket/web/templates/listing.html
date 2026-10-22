@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}{{ l.address }}{% if l.unit %} #{{ l.unit }}{% endif %}{% endblock %}
+{% block content %}
+<p class="small no-print"><a href="/">← All leads</a></p>
+<div class="head">
+  <div>
+    <h1>{{ l.address }}{% if l.unit %} #{{ l.unit }}{% endif %}</h1>
+    <div class="muted">{{ l.neighborhood or l.borough }}, {{ l.borough }} {{ l.zip }} · {{ l.property_type }}
+      {% if l.bbl %} · BBL {{ l.bbl }}{% endif %}</div>
+  </div>
+  <div class="actions no-print">
+    {% if l.state == 'pulled' %}<span class="tier {{ l.tier }}" style="font-size:14px">{{ l.score }} · {{ l.tier }}</span>
+    {% elif l.state == 'sold' %}<span class="pill ok" style="font-size:13px">Sold {{ l.sold_date|d }} · {{ l.sold_price|money }}</span>
+    {% elif l.state == 'contract_off' %}<span class="pill warn" style="font-size:13px">Left market after going into contract</span>
+    {% elif l.state == 'relisted' %}<span class="pill" style="font-size:13px">Relisted</span>
+    {% else %}<span class="pill" style="font-size:13px">On the market</span>{% endif %}
+  </div>
+</div>
+
+{% if suppressed %}<div class="warnbox"><b>Do not contact:</b> this owner or address is on your do-not-contact list ({{ suppressed }}).</div>{% endif %}
+
+<div class="grid">
+<div>
+  <div class="card">
+    <div class="facts">
+      <div><b>{{ l.list_price|money }}</b><span>Last asking</span></div>
+      <div><b>{{ l.high_price|money }}</b><span>Highest asking</span></div>
+      <div><b>{{ l.days_on_market or '—' }}</b><span>Days on market</span></div>
+      <div><b>{{ l.off_date|d }}</b><span>Off market ({{ l.off_reason or '—' }})</span></div>
+      <div><b>{{ l.beds|int if l.beds else '—' }} / {{ l.baths|int if l.baths else '—' }}</b><span>Beds / baths</span></div>
+      <div><b>{{ '{:,}'.format(l.sqft) if l.sqft else '—' }}</b><span>Square feet</span></div>
+      <div><b>{{ l.price_cuts or 0 }}</b><span>Price cuts</span></div>
+      <div><b>{{ (l.prior_pulls or 0) + 1 }}</b><span>Times listed unsold</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Sold check</h2>
+    <p>{% if l.state == 'sold' %}<span class="pill ok">Sold</span> {{ l.sale_check_note or ('Closed in the listing feed' ) }}
+      {% elif l.sale_checked_at %}<span class="pill warn">No sale recorded</span> {{ l.sale_check_note }}
+      {% else %}<span class="muted">Public records haven't been checked yet; this runs with the next refresh.</span>{% endif %}
+      {% if l.sale_checked_at %}<span class="muted small">Checked {{ l.sale_checked_at|d }}.</span>{% endif %}</p>
+    {% if docs %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Document</th><th>Amount</th><th>From → To</th><th></th></tr></thead>
+      <tbody>{% for d in docs %}
+      <tr><td class="num">{{ d.doc_date|d }}</td>
+        <td>{{ d.doc_type }}{% if d.unit %} · #{{ d.unit }}{% endif %}<div class="sub">{{ d.source }}</div></td>
+        <td class="num">{{ d.amount|money }}</td>
+        <td class="small">{{ d.parties_from or '—' }} → {{ d.parties_to or '—' }}</td>
+        <td>{% if d.counts_as_sale %}<span class="pill ok">Sale</span>{% endif %}
+          {% if d.source == 'ACRIS' %}<a class="small" href="{{ doc_url(d.doc_id) }}" target="_blank" rel="noopener">View</a>{% endif %}</td></tr>
+      {% endfor %}</tbody></table></div>
+    {% endif %}
+    <form class="no-print" method="post" action="/listing/{{ l.id }}/recheck" style="margin-top:10px"><button class="ghost">Re-check public records now</button></form>
+  </div>
+
+  <div class="card">
+    <h2>Listing history</h2>
+    <ul class="timeline">
+      {% for e in events %}<li class="{{ e.kind }}"><span class="muted small num">{{ e.at|d }}</span> &nbsp;{{ e.detail }}</li>{% endfor %}
+    </ul>
+    {% if others %}<p class="small muted" style="margin-top:12px">Other listings of this unit:
+      {% for o in others %}<a href="/listing/{{ o.id }}">{{ o.first_seen|d("%b %Y") }} ({{ o.state }})</a>{{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
+    <p class="small" style="margin-top:12px">Listed by <b>{{ l.list_agent or 'unknown agent' }}</b>{% if l.list_office %}, {{ l.list_office }}{% endif %}
+      {% if l.listing_url %} · <a href="{{ l.listing_url }}" target="_blank" rel="noopener">Original listing</a>{% endif %}</p>
+    {% if l.remarks %}<details><summary class="small">Listing description</summary><p class="small">{{ l.remarks }}</p></details>{% endif %}
+  </div>
+</div>
+
+<div>
+  <div class="card">
+    <h2>Owner of record</h2>
+    {% for o in owners %}
+    <div class="owner">
+      <div class="nm">{{ o.name }} {% if o.is_entity %}<span class="pill">Entity</span>{% endif %}</div>
+      {% if o.mailing_address %}<div class="small">Mailing address on deed: {{ o.mailing_address }}</div>{% endif %}
+      <div class="small muted">Acquired {{ o.acquired_date|d }}{% if o.acquired_price %} for {{ o.acquired_price|money }}{% endif %}
+        · <a href="{{ doc_url(o.doc_id) }}" target="_blank" rel="noopener">{{ o.doc_type }}</a></div>
+      {% if o.entity_people %}<div class="small" style="margin-top:6px"><b>Behind the entity (NY DOS):</b>
+        {% for p in o.entity_people %}<div>{{ p.role }}: {{ p.name or '' }}{% if p.address %} · {{ p.address }}{% endif %}</div>{% endfor %}</div>{% endif %}
+    </div>
+    {% else %}
+    <p class="muted">{% if l.owner_checked_at %}No deed or co-op transfer found for this unit in ACRIS. Check the address and unit, or look the owner up by hand.
+      {% else %}Owner lookup runs with the next refresh.{% endif %}</p>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2>Contact info</h2>
+    {% for c in contacts %}
+    {% set blocked = c.dnc or c.tcpa or c.suppressed %}
+    <div class="contact {{ 'blocked' if blocked }}">
+      <div><span class="val">{% if c.kind == 'phone' %}{{ c.value|phone }}{% else %}<a href="mailto:{{ c.value }}">{{ c.value }}</a>{% endif %}</span>
+        <div class="sub">{{ c.person }}{% if c.phone_type %} · {{ c.phone_type }}{% endif %}</div></div>
+      <div>{% if c.suppressed %}<span class="pill err">Your do-not-contact list</span>
+        {% elif c.tcpa %}<span class="pill err">TCPA litigator: don't call</span>
+        {% elif c.dnc %}<span class="pill err">Do Not Call registry</span>
+        {% elif c.kind == 'phone' %}<span class="pill ok">OK to call</span>{% endif %}</div>
+    </div>
+    {% else %}
+    <p class="muted small">No phone or email yet.{% if not skiptrace_on %} Contact lookup turns on when a skip-trace key is added (see Data &amp; imports).{% endif %}</p>
+    {% endfor %}
+    <div class="actions no-print" style="margin-top:10px">
+      <form class="inline" method="post" action="/listing/{{ l.id }}/skiptrace"><button class="ghost" {{ 'disabled' if not skiptrace_on }}>{{ 'Look up again' if l.skiptraced_at else 'Find phone & email' }}</button></form>
+      <a class="btn ghost" href="/listing/{{ l.id }}/letter">Draft owner letter</a>
+    </div>
+    {% if l.skiptraced_at %}<p class="small muted">Looked up {{ l.skiptraced_at|d }}.</p>{% endif %}
+  </div>
+
+  {% if l.score_reasons %}
+  <div class="card">
+    <h2>Why this score</h2>
+    <ul class="reasons">{% for pts, why in l.score_reasons %}<li><span>{{ why }}</span><b>{{ '+' if pts > 0 }}{{ pts }}</b></li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  <div class="card no-print">
+    <h2>Your notes</h2>
+    <form method="post" action="/listing/{{ l.id }}">
+      <select name="lead_status">{% for s in LEAD_STATUSES %}<option {{ 'selected' if l.lead_status == s }}>{{ s }}</option>{% endfor %}</select>
+      <textarea name="notes" rows="5" placeholder="Calls, letters sent, what the owner said…" style="margin-top:8px">{{ l.notes or '' }}</textarea>
+      <button style="margin-top:8px">Save</button>
+    </form>
+  </div>
+</div>
+</div>
+{% endblock %}

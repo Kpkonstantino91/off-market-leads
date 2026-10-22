@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Off-Market Leads{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><span class="mark">◆</span>Off-Market Leads <span class="muted">$5M+ · Manhattan &amp; Brooklyn</span></a>
+  <nav>
+    <a href="/" class="{{ 'on' if request.url.path == '/' or request.url.path.startswith('/listing') }}">Leads</a>
+    <a href="/sources" class="{{ 'on' if request.url.path == '/sources' }}">Data &amp; imports</a>
+    <a href="/settings" class="{{ 'on' if request.url.path == '/settings' }}">Settings</a>
+  </nav>
+</header>
+<main>
+{% if DEMO %}<div class="warnbox"><b>Sample data.</b> These listings, owners and phone numbers are made up to show how the site works.</div>{% endif %}
+{% if msg %}<div class="flash">{{ msg }}</div>{% endif %}
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

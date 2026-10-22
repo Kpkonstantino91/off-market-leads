@@ -1,0 +1,65 @@
+"""Settings read from environment variables (see .env.example).
+
+Things a broker changes day to day (price floor, neighborhoods, auto skip-trace) live in the
+database and are edited on the website's Settings page; see `settings.py`.
+"""
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _load_dotenv():
+    env = BASE_DIR / ".env"
+    if not env.exists():
+        return
+    for line in env.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+_load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'offmarket.db'}")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
+
+# Daily schedule for the built-in scheduler (America/New_York).
+DAILY_RUN_HOUR = int(os.getenv("DAILY_RUN_HOUR", "6"))
+ENABLE_SCHEDULER = os.getenv("ENABLE_SCHEDULER", "1") == "1"
+
+# Website login. If unset the site is open (fine on your laptop, not on the internet).
+DASHBOARD_USER = os.getenv("DASHBOARD_USER", "broker")
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
+
+# Free NYC open data (ACRIS, DOF sales) and NY State (corporations). An app token raises rate limits.
+SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
+
+# --- Listing feed: any RESO Web API (REBNY RLS via Trestle, OneKey MLS, Bridge, MLS Grid) ---
+# Either a static bearer token, or OAuth2 client credentials (Trestle uses client credentials).
+RESO_BASE_URL = os.getenv("RESO_BASE_URL", "")            # e.g. https://api-trestle.corelogic.com/trestle/odata
+RESO_TOKEN_URL = os.getenv("RESO_TOKEN_URL", "")          # e.g. https://api-trestle.corelogic.com/trestle/oidc/connect/token
+RESO_CLIENT_ID = os.getenv("RESO_CLIENT_ID", "")
+RESO_CLIENT_SECRET = os.getenv("RESO_CLIENT_SECRET", "")
+RESO_SCOPE = os.getenv("RESO_SCOPE", "api")
+RESO_ACCESS_TOKEN = os.getenv("RESO_ACCESS_TOKEN", "")
+RESO_FEED_NAME = os.getenv("RESO_FEED_NAME", "REBNY RLS")
+# Extra OData filter appended to every query, if the feed needs one (e.g. "OriginatingSystemName eq 'REBNY'").
+RESO_EXTRA_FILTER = os.getenv("RESO_EXTRA_FILTER", "")
+
+# --- Contact lookup (skip trace). Off until a key is set. ---
+BATCHDATA_API_KEY = os.getenv("BATCHDATA_API_KEY", "")
+BATCHDATA_URL = os.getenv("BATCHDATA_URL", "https://api.batchdata.com/api/v3/property/skip-trace")
+
+# Optional: Claude drafts the outreach letter on the lead page.
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-5")
+
+# Your brokerage's name and signature for outreach letters.
+BROKERAGE_NAME = os.getenv("BROKERAGE_NAME", "Conquest")
+AGENT_NAME = os.getenv("AGENT_NAME", "")
+AGENT_PHONE = os.getenv("AGENT_PHONE", "")
+AGENT_EMAIL = os.getenv("AGENT_EMAIL", "")

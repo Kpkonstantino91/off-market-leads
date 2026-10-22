@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<p class="muted">What counts as a lead. Changes apply from the next refresh.</p>
+
+<form class="card" method="post" action="/settings">
+  <div class="formgrid">
+    <label>Price floor</label>
+    <div><input name="min_price" value="{{ '{:,}'.format(s.min_price) }}">
+      <label class="row"><input type="checkbox" name="use_high_price" {{ 'checked' if s.use_high_price }}> Include listings that started above the floor and were cut below it</label></div>
+
+    <label>Manhattan</label>
+    <div><label class="row"><input type="checkbox" name="manhattan_all" {{ 'checked' if s.manhattan_all }}> All of Manhattan</label></div>
+
+    <label>Brooklyn neighborhoods</label>
+    <div><textarea name="brooklyn_neighborhoods" rows="12">{{ hoods }}</textarea>
+      <div class="hint">One per line: <code>Neighborhood: ZIP, ZIP</code>. The name is matched against the listing's neighborhood;
+        the ZIPs are used when a listing has no neighborhood name.</div></div>
+
+    <label>Property types</label>
+    <div>{% for t in all_types %}<label class="row"><input type="checkbox" name="property_types" value="{{ t }}" {{ 'checked' if t in s.property_types }}> {{ t }}</label>{% endfor %}</div>
+
+    <label>What counts as a sale</label>
+    <div>A recorded deed or co-op transfer of at least <input class="short" name="sale_min_ratio" value="{{ s.sale_min_ratio }}"> × the last asking price
+      <div class="hint">0.5 means a transfer at half the asking price or more. Lower-priced transfers (e.g. $0 into a trust or LLC) don't hide a lead.</div></div>
+
+    <label>Keep re-checking for a sale</label>
+    <div><input class="short" name="sale_recheck_days" value="{{ s.sale_recheck_days }}"> days after a listing comes off</div>
+
+    <label>Fell out of contract</label>
+    <div>Treat as unsold after <input class="short" name="contract_wait_days" value="{{ s.contract_wait_days }}"> days with no recorded sale
+      <div class="hint">Listings that went into contract and then left the market usually closed; deeds can take weeks to record.</div></div>
+
+    <label>Disappeared listings</label>
+    <div>Call a listing off the market after it's missing from the feed for <input class="short" name="missing_days" value="{{ s.missing_days }}"> days</div>
+
+    <label>Automatic contact lookup</label>
+    <div>{% for t in ['Hot', 'Warm', 'Watch'] %}<label class="row"><input type="checkbox" name="auto_skiptrace_tiers" value="{{ t }}" {{ 'checked' if t in s.auto_skiptrace_tiers }} {{ 'disabled' if not skiptrace_on }}> Skip trace new {{ t }} leads every morning</label>{% endfor %}
+      <div class="hint">{% if skiptrace_on %}Each match is billed by the skip-trace provider.{% else %}Off until a skip-trace key is added. You can still look up one lead at a time once it is.{% endif %}</div></div>
+  </div>
+  <p><button>Save settings</button></p>
+</form>
+
+<div class="card" id="dnc">
+  <h2>Do-not-contact list</h2>
+  <p class="small">Phones, emails, owner names or addresses that must never be contacted: owners on a NY DOS cease-and-desist list,
+    people who asked you to stop, your own clients. Matching contacts are struck out everywhere and left out of the "callable" counts.
+    Numbers on the National Do Not Call registry are flagged automatically by the skip-trace provider.</p>
+  <p class="small muted">{{ cd_note }}</p>
+  <form method="post" action="/suppression" class="filters">
+    <select name="kind"><option value="phone">Phone</option><option value="email">Email</option><option value="name">Owner name</option><option value="address">Address (with #unit)</option></select>
+    <textarea name="value" rows="2" placeholder="One per line" style="flex:1;min-width:240px"></textarea>
+    <input name="reason" placeholder="Reason (e.g. NY DOS cease & desist)">
+    <button>Add</button>
+  </form>
+  {% if sup %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Type</th><th>Value</th><th>Reason</th><th>Added</th><th></th></tr></thead>
+    <tbody>{% for x in sup %}<tr><td>{{ x.kind }}</td><td>{{ x.value }}</td><td>{{ x.reason }}</td><td>{{ x.created_at|d }}</td>
+      <td><form method="post" action="/suppression/{{ x.id }}/delete"><button class="ghost">Remove</button></form></td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+</div>
+{% endblock %}
