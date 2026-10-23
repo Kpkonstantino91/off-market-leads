@@ -70,6 +70,24 @@ def money(v):
     return f"${v / 1e6:.2f}M".replace(".00M", "M") if v >= 1e6 else f"${v:,.0f}"
 
 
+def people_links(name, city="New York, NY"):
+    """Free people-search pages for a manual phone/email lookup (opened by the broker, not scraped)."""
+    from urllib.parse import quote, quote_plus
+    slug = "-".join(name.lower().split())
+    return [
+        ("TruePeopleSearch", f"https://www.truepeoplesearch.com/results?name={quote(name)}&citystatezip={quote(city)}"),
+        ("FastPeopleSearch", f"https://www.fastpeoplesearch.com/name/{quote(slug)}_new-york-ny"),
+        ("Google", f"https://www.google.com/search?q={quote_plus(chr(34) + name + chr(34) + ' New York')}"),
+    ]
+
+
+def entity_links(name):
+    from urllib.parse import quote_plus
+    return [("NY business search", "https://apps.dos.ny.gov/publicInquiry/"),
+            ("OpenCorporates", f"https://opencorporates.com/companies?q={quote_plus(name)}&jurisdiction_code=us_ny")]
+
+
+templates.env.globals.update(people_links=people_links, entity_links=entity_links)
 templates.env.filters.update(money=money, phone=normalize.fmt_phone,
                              d=lambda v, f="%b %d, %Y": v.strftime(f) if v else "—")
 templates.env.globals.update(LEAD_STATUSES=LEAD_STATUSES, VIEWS=VIEWS, doc_url=acris.doc_url, config=config,

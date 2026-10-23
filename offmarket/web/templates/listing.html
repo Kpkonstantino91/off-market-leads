@@ -77,8 +77,12 @@
       {% if o.mailing_address %}<div class="small">Mailing address on deed: {{ o.mailing_address }}</div>{% endif %}
       <div class="small muted">Acquired {{ o.acquired_date|d }}{% if o.acquired_price %} for {{ o.acquired_price|money }}{% endif %}
         · <a href="{{ doc_url(o.doc_id) }}" target="_blank" rel="noopener">{{ o.doc_type }}</a></div>
+      <div class="small no-print" style="margin-top:4px">Look up phone/email:
+        {% if o.is_entity %}{% for label, url in entity_links(o.name) %}<a href="{{ url }}" target="_blank" rel="noopener">{{ label }}</a>{{ ' · ' if not loop.last }}{% endfor %}
+        {% else %}{% for label, url in people_links(o.name) %}<a href="{{ url }}" target="_blank" rel="noopener">{{ label }}</a>{{ ' · ' if not loop.last }}{% endfor %}{% endif %}</div>
       {% if o.entity_people %}<div class="small" style="margin-top:6px"><b>Behind the entity (NY DOS):</b>
-        {% for p in o.entity_people %}<div>{{ p.role }}: {{ p.name or '' }}{% if p.address %} · {{ p.address }}{% endif %}</div>{% endfor %}</div>{% endif %}
+        {% for p in o.entity_people %}<div>{{ p.role }}: {{ p.name or '' }}{% if p.address %} · {{ p.address }}{% endif %}
+          {% if p.name %}<span class="no-print">({% for label, url in people_links(p.name)[:2] %}<a href="{{ url }}" target="_blank" rel="noopener">{{ label }}</a>{{ ', ' if not loop.last }}{% endfor %})</span>{% endif %}</div>{% endfor %}</div>{% endif %}
     </div>
     {% else %}
     <p class="muted">{% if l.owner_checked_at %}No deed or co-op transfer found for this unit in ACRIS. Check the address and unit, or look the owner up by hand.
@@ -99,7 +103,9 @@
         {% elif c.kind == 'phone' %}<span class="pill ok">OK to call</span>{% endif %}</div>
     </div>
     {% else %}
-    <p class="muted small">No phone or email yet.{% if not skiptrace_on %} Contact lookup turns on when a skip-trace key is added (see Data &amp; imports).{% endif %}</p>
+    <p class="muted small">No phone or email saved yet. Use the free look-up links under the owner's name, then
+      add what you find to your notes. Check any number against the National Do Not Call list before calling.
+      {% if not skiptrace_on %}Automatic lookup (paid) turns on when a skip-trace key is added.{% endif %}</p>
     {% endfor %}
     <div class="actions no-print" style="margin-top:10px">
       <form class="inline" method="post" action="/listing/{{ l.id }}/skiptrace"><button class="ghost" {{ 'disabled' if not skiptrace_on }}>{{ 'Look up again' if l.skiptraced_at else 'Find phone & email' }}</button></form>
