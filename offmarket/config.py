@@ -28,8 +28,10 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 if DATABASE_URL.startswith("psql "):
     DATABASE_URL = DATABASE_URL[5:].strip()
 DATABASE_URL = DATABASE_URL.strip("'\"") or f"sqlite:///{BASE_DIR / 'data' / 'offmarket.db'}"
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
+# Use the psycopg 3 driver whichever way the Postgres URL is written.
+for _prefix in ("postgres://", "postgresql://"):
+    if DATABASE_URL.startswith(_prefix):
+        DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL[len(_prefix):]
 
 # Daily schedule for the built-in scheduler (America/New_York).
 DAILY_RUN_HOUR = int(os.getenv("DAILY_RUN_HOUR", "6"))
