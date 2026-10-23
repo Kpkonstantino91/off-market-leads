@@ -254,3 +254,20 @@ def test_rentcast_mapping_and_ingest(env):
     l = _get(row["listing_key"])
     assert l["state"] == "pulled" and l["off_reason"] == "Removed" and l["high_price"] == 8_200_000
     assert rentcast._type("Apartment") == "Co-op"
+
+
+def test_rentcast_monthly_cap(env, monkeypatch):
+    from offmarket.sources import rentcast
+    calls = []
+
+    class R:
+        status_code = 200
+        def raise_for_status(self): pass
+        def json(self): return []
+    monkeypatch.setattr(config, "RENTCAST_API_KEY", "k")
+    monkeypatch.setattr(config, "RENTCAST_MONTHLY_CAP", 2)
+    monkeypatch.setattr(rentcast, "_get", lambda p: calls.append(p) or R())
+    assert pipeline._step("rentcast", pipeline.run_rentcast)["requests"] == 1
+    assert pipeline._step("rentcast", pipeline.run_rentcast)["requests"] == 1
+    assert "limit reached" in pipeline._step("rentcast", pipeline.run_rentcast)["skipped"]
+    assert len(calls) == 2 and pipeline.rentcast_requests_this_month() == 2

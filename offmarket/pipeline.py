@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from sqlalchemy import and_, or_, select
 
-from . import compliance, db, normalize, scoring, settings
+from . import compliance, config, db, normalize, scoring, settings
 from .enrich import skiptrace
 from .public import acris, records
 from .sources import base, rentcast, reso
@@ -375,13 +375,40 @@ def run_feed():
 def run_rentcast():
     if not rentcast.enabled():
         return {"skipped": "no RENTCAST_API_KEY"}
+    used = rentcast_requests_this_month()
+    left = config.RENTCAST_MONTHLY_CAP - used
+    if left <= 0:
+        return {"skipped": f"monthly RentCast limit reached ({used} of {config.RENTCAST_MONTHLY_CAP}); resumes next month"}
     s = settings.get_all()
     floor = int(s["min_price"] * (0.6 if s["use_high_price"] else 1))
-    rows = list(rentcast.fetch(floor))
+    counter = {}
+    try:
+        rows = list(rentcast.fetch(floor, budget=left, counter=counter))
+    except Exception as e:
+        _log_requests(counter.get("requests", 0))
+        raise RuntimeError(f"RentCast request failed: {e}") from e
     with db.engine().begin() as conn:
         st = ingest(conn, rows, s)
     st["fetched"] = len(rows)
+    st["requests"] = counter.get("requests", 0)
+    st["requests_this_month"] = used + st["requests"]
     return st
+
+
+def _log_requests(n):
+    """Record requests made by a run that then failed, so they still count against the monthly cap."""
+    if n:
+        with db.engine().begin() as conn:
+            conn.execute(db.runs.insert().values(step="rentcast_usage", started_at=db.now(), finished_at=db.now(),
+                                                 status="ok", stats={"requests": n}))
+
+
+def rentcast_requests_this_month():
+    start = db.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    with db.engine().connect() as conn:
+        rows = conn.execute(select(db.runs.c.stats).where(and_(
+            db.runs.c.step.in_(("rentcast", "rentcast_usage")), db.runs.c.started_at >= start))).all()
+    return sum(int((r.stats or {}).get("requests", 0)) for r in rows)
 
 
 def import_rows(rows, full_snapshot, filename):

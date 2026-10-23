@@ -32,16 +32,22 @@ def _get(params):
     return r
 
 
-def fetch(min_price, status="Inactive"):
-    """Listings over the floor inside the search circle, most recently seen first."""
+def fetch(min_price, status="Inactive", budget=None, counter=None):
+    """Listings over the floor inside the search circle, most recently seen first.
+    Makes at most `budget` requests and adds each one to counter["requests"]."""
+    counter = counter if counter is not None else {}
+    counter.setdefault("requests", 0)
+    budget = config.RENTCAST_PAGES if budget is None else min(budget, config.RENTCAST_PAGES)
     params = {"latitude": config.RENTCAST_LAT, "longitude": config.RENTCAST_LON, "radius": config.RENTCAST_RADIUS,
               "status": status, "price": f"{min_price}:*", "limit": 500}
-    for page in range(config.RENTCAST_PAGES):
+    for page in range(budget):
         params["offset"] = page * 500
         r = _get(params)
-        if r.status_code == 400 and params["price"].endswith("*"):
+        counter["requests"] += 1
+        if r.status_code == 400 and params["price"].endswith("*") and counter["requests"] < budget:
             params["price"] = f"{min_price}:1000000000"   # older range syntax
             r = _get(params)
+            counter["requests"] += 1
         r.raise_for_status()
         rows = r.json()
         if isinstance(rows, dict):

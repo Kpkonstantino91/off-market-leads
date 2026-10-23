@@ -333,7 +333,8 @@ def sources(request: Request):
         history = conn.execute(select(db.runs).order_by(desc(db.runs.c.started_at)).limit(30)).mappings().all()
         by_source = dict(conn.execute(select(db.listings.c.source, func.count()).group_by(db.listings.c.source)).all())
     return templates.TemplateResponse(request, "sources.html", {
-        "history": history, "by_source": by_source, "feed_on": reso.enabled(), "rentcast_on": rentcast.enabled(), "feed_label": reso.label,
+        "history": history, "by_source": by_source, "feed_on": reso.enabled(), "rentcast_on": rentcast.enabled(),
+        "rentcast_used": pipeline.rentcast_requests_this_month(), "rentcast_cap": config.RENTCAST_MONTHLY_CAP, "feed_label": reso.label,
         "skiptrace_on": skiptrace.enabled(), "claude_on": bool(config.ANTHROPIC_API_KEY),
         "running": _run_state["running"], "msg": request.query_params.get("msg", ""),
     })

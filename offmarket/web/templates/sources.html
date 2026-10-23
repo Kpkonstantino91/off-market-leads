@@ -17,7 +17,8 @@
         <td>{% if feed_on %}<span class="pill ok">Connected</span>{% else %}<span class="pill warn">Needs credentials</span>{% endif %}</td>
         <td class="num">{{ by_source.get('reso', 0) }}</td></tr>
       <tr><td><b>RentCast listings API</b><div class="sub">Daily: $5M+ listings in Manhattan and Brooklyn that came off the market.
-        Licensed data from public sources (not the MLS), so some co-ops may be missing. Free plan covers one request a day.</div></td>
+        Licensed data from public sources (not the MLS), so some co-ops may be missing. Free plan covers one request a day.
+        Used this month: <b>{{ rentcast_used }}</b> of {{ rentcast_cap }} (hard stop).</div></td>
         <td>{% if rentcast_on %}<span class="pill ok">Connected</span>{% else %}<span class="pill warn">Needs API key</span>{% endif %}</td>
         <td class="num">{{ by_source.get('rentcast', 0) }}</td></tr>
       <tr><td><b>Spreadsheet import</b><div class="sub">Exports from RLS, Perchwell, OneKey MLS or your CRM.</div></td>
