@@ -147,6 +147,13 @@ suppression = Table(
     Column("created_at", DateTime),
 )
 
+# Leads already included in a morning email.
+digest_sent = Table(
+    "digest_sent", metadata,
+    Column("listing_id", Integer, ForeignKey("listings.id"), primary_key=True),
+    Column("sent_at", DateTime),
+)
+
 settings = Table(
     "settings", metadata,
     Column("key", String(60), primary_key=True),

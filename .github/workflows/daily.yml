@@ -38,5 +38,8 @@ jobs:
           RESO_CLIENT_ID: ${{ secrets.RESO_CLIENT_ID }}
           RESO_CLIENT_SECRET: ${{ secrets.RESO_CLIENT_SECRET }}
           RENTCAST_API_KEY: ${{ secrets.RENTCAST_API_KEY }}
+          DIGEST_TO: Kai@conquest.nyc
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           BATCHDATA_API_KEY: ${{ secrets.BATCHDATA_API_KEY }}
           SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}

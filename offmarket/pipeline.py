@@ -453,6 +453,8 @@ def run_daily():
     out["skiptrace"] = _step("skiptrace", lambda: _with_conn(lambda c: auto_skiptrace(c, s)))
     if out["skiptrace"] and out["skiptrace"].get("traced"):
         _step("score", lambda: _with_conn(lambda c: {"scored": rescore(c)}))
+    from . import digest
+    out["email"] = _step("email", digest.run)
     return out
 
 

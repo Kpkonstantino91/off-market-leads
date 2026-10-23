@@ -279,3 +279,22 @@ def test_sales_check_saves_per_listing(env):
     out = pipeline.check_sales(None, settings.get_all(), today=DAY3, minutes=30)
     assert out["checked"] == 3 and out["sold"] == 1
     assert _get("A2")["state"] == "sold" and _get("A1")["owner_checked_at"] is not None
+
+
+def test_morning_email(env, monkeypatch):
+    from offmarket import digest
+    _import(SNAPSHOT, DAY1)
+    _import(DAY2_STATUS, DAY2)
+    with db.engine().begin() as conn:
+        pipeline.check_sales(conn, settings.get_all(), today=DAY3)
+        pipeline.rescore(conn, today=DAY3)
+    sent = []
+    monkeypatch.setattr(config, "SMTP_USER", "kai@conquest.nyc")
+    monkeypatch.setattr(config, "SMTP_PASSWORD", "x")
+    monkeypatch.setattr(config, "DIGEST_TO", "Kai@conquest.nyc")
+    monkeypatch.setattr(digest, "send", lambda s, t, b: sent.append((s, t, b)))
+    assert digest.run()["emailed"] == 2          # condo + LLC townhouse; the sold townhouse is left out
+    subject, text, body = sent[0]
+    assert "2 new off-market leads" in subject and "John Smith" in text and "12 Willow" not in text
+    assert digest.run()["emailed"] == 0          # nothing repeats the next day
+    assert sent[1][0] == "No new off-market leads today"

@@ -75,6 +75,15 @@ SALE_CHECK_MINUTES = int(os.getenv("SALE_CHECK_MINUTES", "40"))
 BATCHDATA_API_KEY = os.getenv("BATCHDATA_API_KEY", "")
 BATCHDATA_URL = os.getenv("BATCHDATA_URL", "https://api.batchdata.com/api/v3/property/skip-trace")
 
+# Morning email of new leads (any SMTP mailbox; for Google Workspace/Gmail use an app password).
+DIGEST_TO = os.getenv("DIGEST_TO", "")
+DIGEST_FROM = os.getenv("DIGEST_FROM", "")
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
+SITE_URL = os.getenv("SITE_URL", "https://off-market-leads.onrender.com")
+
 # Optional: Claude drafts the outreach letter on the lead page.
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-5")
