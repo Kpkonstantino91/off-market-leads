@@ -260,8 +260,12 @@ def _set_owner(conn, lid, docs):
             doc_type=doc["doc_type"], entity_people=people, source="ACRIS"))
 
 
-def check_sales(conn, s, today=None, limit=400):
+def check_sales(conn, s, today=None, limit=400, minutes=None):
+    """Sold check + owner lookup for open leads. With conn=None each listing is saved as soon as it's
+    checked (so a long first run keeps its progress) and the run stops after `minutes`."""
+    import time
     today = today or db.now()
+    deadline = time.monotonic() + minutes * 60 if minutes else None
     L = db.listings.c
     stale = today - timedelta(hours=20)
     q = select(db.listings).where(and_(
@@ -270,9 +274,23 @@ def check_sales(conn, s, today=None, limit=400):
         or_(L.sale_checked_at.is_(None), L.sale_checked_at < stale),
     )).order_by(L.sale_checked_at.is_not(None), L.off_date.desc()).limit(limit)
     stats = {"checked": 0, "sold": 0, "errors": 0}
-    for l in conn.execute(q).mappings().all():
+    if conn is None:
+        with db.engine().connect() as c:
+            todo = c.execute(q).mappings().all()
+    else:
+        todo = conn.execute(q).mappings().all()
+    for l in todo:
+        if deadline and time.monotonic() > deadline:
+            stats["left_for_tomorrow"] = len(todo) - stats["checked"] - stats["errors"]
+            break
         try:
-            stats["sold"] += check_one(conn, l, s, today)
+            if conn is None:
+                with db.engine().begin() as c:
+                    stats["sold"] += check_one(c, l, s, today)
+                    if (stats["checked"] + 1) % 20 == 0:
+                        rescore(c)
+            else:
+                stats["sold"] += check_one(conn, l, s, today)
             stats["checked"] += 1
         except Exception as e:  # noqa: BLE001 - one bad lookup shouldn't stop the run
             stats["errors"] += 1
@@ -424,9 +442,13 @@ def import_rows(rows, full_snapshot, filename):
 
 
 def run_daily():
-    out = {"feed": _step("feed", run_feed), "rentcast": _step("rentcast", run_rentcast)}
+    import os
+    if os.getenv("SKIP_LISTINGS") == "1":   # re-run the records checks without spending listing requests
+        out = {"listings": "skipped"}
+    else:
+        out = {"feed": _step("feed", run_feed), "rentcast": _step("rentcast", run_rentcast)}
     s = settings.get_all()
-    out["sales"] = _step("sold_check", lambda: _with_conn(lambda c: check_sales(c, s)))
+    out["sales"] = _step("sold_check", lambda: check_sales(None, s, minutes=config.SALE_CHECK_MINUTES))
     out["score"] = _step("score", lambda: _with_conn(lambda c: {"scored": rescore(c)}))
     out["skiptrace"] = _step("skiptrace", lambda: _with_conn(lambda c: auto_skiptrace(c, s)))
     if out["skiptrace"] and out["skiptrace"].get("traced"):

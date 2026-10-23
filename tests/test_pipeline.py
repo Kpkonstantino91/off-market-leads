@@ -271,3 +271,11 @@ def test_rentcast_monthly_cap(env, monkeypatch):
     assert pipeline._step("rentcast", pipeline.run_rentcast)["requests"] == 1
     assert "limit reached" in pipeline._step("rentcast", pipeline.run_rentcast)["skipped"]
     assert len(calls) == 2 and pipeline.rentcast_requests_this_month() == 2
+
+
+def test_sales_check_saves_per_listing(env):
+    _import(SNAPSHOT, DAY1)
+    _import(DAY2_STATUS, DAY2)
+    out = pipeline.check_sales(None, settings.get_all(), today=DAY3, minutes=30)
+    assert out["checked"] == 3 and out["sold"] == 1
+    assert _get("A2")["state"] == "sold" and _get("A1")["owner_checked_at"] is not None

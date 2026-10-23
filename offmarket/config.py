@@ -68,6 +68,9 @@ RENTCAST_PAGE_SIZE = int(os.getenv("RENTCAST_PAGE_SIZE", "250"))
 # Hard stop: never make more than this many RentCast requests in a calendar month (free plan = 50).
 RENTCAST_MONTHLY_CAP = int(os.getenv("RENTCAST_MONTHLY_CAP", "45"))
 
+# Time limit for the daily sold check / owner lookup; whatever's left continues the next day.
+SALE_CHECK_MINUTES = int(os.getenv("SALE_CHECK_MINUTES", "40"))
+
 # --- Contact lookup (skip trace). Off until a key is set. ---
 BATCHDATA_API_KEY = os.getenv("BATCHDATA_API_KEY", "")
 BATCHDATA_URL = os.getenv("BATCHDATA_URL", "https://api.batchdata.com/api/v3/property/skip-trace")

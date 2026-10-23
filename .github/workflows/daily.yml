@@ -5,11 +5,16 @@ name: Daily refresh
 on:
   schedule:
     - cron: "0 10 * * *"   # 10:00 UTC = 6am New York in summer, 5am in winter
-  workflow_dispatch: {}     # "Run workflow" button for a manual refresh
+  workflow_dispatch:        # "Run workflow" button for a manual refresh
+    inputs:
+      pull_listings:
+        description: "Pull new listings (uses 1 RentCast request)"
+        type: boolean
+        default: true
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,6 +32,7 @@ jobs:
       - run: python -m offmarket run
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SKIP_LISTINGS: ${{ github.event_name == 'workflow_dispatch' && !inputs.pull_listings && '1' || '0' }}
           RESO_BASE_URL: ${{ secrets.RESO_BASE_URL }}
           RESO_TOKEN_URL: ${{ secrets.RESO_TOKEN_URL }}
           RESO_CLIENT_ID: ${{ secrets.RESO_CLIENT_ID }}
