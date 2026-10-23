@@ -28,7 +28,7 @@ def enabled():
 
 def _get(params):
     r = requests.get(URL, params=params, headers={"X-Api-Key": config.RENTCAST_API_KEY,
-                                                  "Accept": "application/json"}, timeout=90)
+                                                  "Accept": "application/json"}, timeout=(15, 300))
     return r
 
 
@@ -39,9 +39,9 @@ def fetch(min_price, status="Inactive", budget=None, counter=None):
     counter.setdefault("requests", 0)
     budget = config.RENTCAST_PAGES if budget is None else min(budget, config.RENTCAST_PAGES)
     params = {"latitude": config.RENTCAST_LAT, "longitude": config.RENTCAST_LON, "radius": config.RENTCAST_RADIUS,
-              "status": status, "price": f"{min_price}:*", "limit": 500}
+              "status": status, "price": f"{min_price}:*", "limit": config.RENTCAST_PAGE_SIZE}
     for page in range(budget):
-        params["offset"] = page * 500
+        params["offset"] = page * config.RENTCAST_PAGE_SIZE
         r = _get(params)
         counter["requests"] += 1
         if r.status_code == 400 and params["price"].endswith("*") and counter["requests"] < budget:
@@ -54,7 +54,7 @@ def fetch(min_price, status="Inactive", budget=None, counter=None):
             rows = rows.get("data") or rows.get("listings") or []
         for row in rows:
             yield to_listing(row)
-        if len(rows) < 500:
+        if len(rows) < config.RENTCAST_PAGE_SIZE:
             return
 
 

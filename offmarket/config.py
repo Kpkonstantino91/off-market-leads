@@ -62,7 +62,9 @@ RENTCAST_API_KEY = os.getenv("RENTCAST_API_KEY", "")
 RENTCAST_LAT = float(os.getenv("RENTCAST_LAT", "40.76"))
 RENTCAST_LON = float(os.getenv("RENTCAST_LON", "-73.97"))
 RENTCAST_RADIUS = float(os.getenv("RENTCAST_RADIUS", "8.5"))
-RENTCAST_PAGES = int(os.getenv("RENTCAST_PAGES", "1"))   # requests per daily run (500 listings each)
+RENTCAST_PAGES = int(os.getenv("RENTCAST_PAGES", "1"))   # requests per daily run
+# Listings per request (max 500). Big pages over the whole area can time out, so stay moderate.
+RENTCAST_PAGE_SIZE = int(os.getenv("RENTCAST_PAGE_SIZE", "250"))
 # Hard stop: never make more than this many RentCast requests in a calendar month (free plan = 50).
 RENTCAST_MONTHLY_CAP = int(os.getenv("RENTCAST_MONTHLY_CAP", "45"))
 
