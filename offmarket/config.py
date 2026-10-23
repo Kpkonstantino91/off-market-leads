@@ -23,7 +23,11 @@ def _load_dotenv():
 
 _load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'offmarket.db'}")
+# Tolerate common paste slips: blank values, surrounding quotes, or Neon's "psql '...'" copy format.
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+if DATABASE_URL.startswith("psql "):
+    DATABASE_URL = DATABASE_URL[5:].strip()
+DATABASE_URL = DATABASE_URL.strip("'\"") or f"sqlite:///{BASE_DIR / 'data' / 'offmarket.db'}"
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
 
