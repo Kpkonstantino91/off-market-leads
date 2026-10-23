@@ -17,6 +17,13 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
+      - name: Check the database secret is set
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Add the DATABASE_URL repository secret (Settings > Secrets and variables > Actions)"; exit 1
+          fi
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - run: python -m offmarket run
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
