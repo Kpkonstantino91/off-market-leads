@@ -56,6 +56,14 @@ RESO_FEED_NAME = os.getenv("RESO_FEED_NAME", "REBNY RLS")
 # Extra OData filter appended to every query, if the feed needs one (e.g. "OriginatingSystemName eq 'REBNY'").
 RESO_EXTRA_FILTER = os.getenv("RESO_EXTRA_FILTER", "")
 
+# --- Listing data without RLS: RentCast API (rentcast.io). Free plan = 50 requests/month. ---
+RENTCAST_API_KEY = os.getenv("RENTCAST_API_KEY", "")
+# One circle around Manhattan + brownstone Brooklyn; listings outside your areas are dropped afterwards.
+RENTCAST_LAT = float(os.getenv("RENTCAST_LAT", "40.76"))
+RENTCAST_LON = float(os.getenv("RENTCAST_LON", "-73.97"))
+RENTCAST_RADIUS = float(os.getenv("RENTCAST_RADIUS", "8.5"))
+RENTCAST_PAGES = int(os.getenv("RENTCAST_PAGES", "1"))   # requests per daily run (500 listings each)
+
 # --- Contact lookup (skip trace). Off until a key is set. ---
 BATCHDATA_API_KEY = os.getenv("BATCHDATA_API_KEY", "")
 BATCHDATA_URL = os.getenv("BATCHDATA_URL", "https://api.batchdata.com/api/v3/property/skip-trace")

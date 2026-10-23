@@ -16,5 +16,7 @@ services:
         value: broker
       - key: DASHBOARD_PASSWORD
         generateValue: true
+      - key: RENTCAST_API_KEY
+        sync: false
       - key: BATCHDATA_API_KEY
         sync: false

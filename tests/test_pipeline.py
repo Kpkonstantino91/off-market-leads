@@ -235,3 +235,22 @@ def test_reso_mapping():
     assert l["status_date"] == datetime(2026, 10, 1) and l["bbl"] == "1014200021" and l["unit"] == "PH-B"
     assert reso.to_listing({"ListingKey": "k", "StandardStatus": "ActiveUnderContract"})["status"] == "Pending"
     assert reso.to_listing({"ListingKey": "k", "StandardStatus": "Expired"})["status"] == "Expired"
+
+
+def test_rentcast_mapping_and_ingest(env):
+    from offmarket.sources import rentcast
+    row = rentcast.to_listing({
+        "id": "15-Central-Park-W,-Apt-20A,-New-York,-NY-10023", "addressLine1": "15 Central Park W",
+        "addressLine2": "Apt 20A", "city": "New York", "state": "NY", "zipCode": "10023", "county": "New York",
+        "propertyType": "Condo", "bedrooms": 3, "bathrooms": 3.5, "squareFootage": 2400, "status": "Inactive",
+        "price": 6900000, "listedDate": "2025-11-01T00:00:00.000Z", "removedDate": "2026-07-30T00:00:00.000Z",
+        "daysOnMarket": 271, "listingOffice": {"name": "Big Brokerage"}, "listingAgent": {"name": "Pat Lee"},
+        "history": {"2025-11-01": {"event": "Sale Listing", "price": 8200000, "listedDate": "2025-11-01T00:00:00.000Z"}}})
+    assert row["status"] == "Removed" and row["unit"] == "20A" and row["borough"] == "Manhattan"
+    assert row["original_price"] == 8_200_000
+    with db.engine().begin() as conn:
+        st = pipeline.ingest(conn, [row], settings.get_all(), today=DAY3)
+    assert st["pulled"] == 1
+    l = _get(row["listing_key"])
+    assert l["state"] == "pulled" and l["off_reason"] == "Removed" and l["high_price"] == 8_200_000
+    assert rentcast._type("Apartment") == "Co-op"

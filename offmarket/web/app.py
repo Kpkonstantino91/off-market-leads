@@ -19,7 +19,7 @@ from sqlalchemy import and_, desc, func, or_, select
 from .. import compliance, config, db, normalize, pipeline, settings
 from ..enrich import letter, skiptrace
 from ..public import acris
-from ..sources import csv_import, reso
+from ..sources import csv_import, rentcast, reso
 
 log = logging.getLogger(__name__)
 HERE = Path(__file__).parent
@@ -177,7 +177,7 @@ def leads(request: Request, page: int = 1):
         "pages": max(1, -(-total // PAGE_SIZE)), "counts": counts, "tiers": tiers, "week": week,
         "last_run": last_run, "running": _run_state["running"], "areas": areas, "types": s["property_types"],
         "qs": "&".join(f"{k}={v}" for k, v in f.items() if v and k != "page"),
-        "feed_on": reso.enabled(), "has_any": sum(counts.values()) > 0,
+        "feed_on": reso.enabled() or rentcast.enabled(), "has_any": sum(counts.values()) > 0,
     })
 
 
@@ -333,7 +333,7 @@ def sources(request: Request):
         history = conn.execute(select(db.runs).order_by(desc(db.runs.c.started_at)).limit(30)).mappings().all()
         by_source = dict(conn.execute(select(db.listings.c.source, func.count()).group_by(db.listings.c.source)).all())
     return templates.TemplateResponse(request, "sources.html", {
-        "history": history, "by_source": by_source, "feed_on": reso.enabled(), "feed_label": reso.label,
+        "history": history, "by_source": by_source, "feed_on": reso.enabled(), "rentcast_on": rentcast.enabled(), "feed_label": reso.label,
         "skiptrace_on": skiptrace.enabled(), "claude_on": bool(config.ANTHROPIC_API_KEY),
         "running": _run_state["running"], "msg": request.query_params.get("msg", ""),
     })

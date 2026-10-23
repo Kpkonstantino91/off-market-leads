@@ -40,6 +40,7 @@ the owner, contacts, notes/status, and a printable owner letter (template, or Cl
 | Source | Status | Notes |
 |---|---|---|
 | **REBNY RLS feed** (RESO Web API via Trestle) | Built, needs credentials | The NYC listing service behind StreetEasy and brokerage sites. A "Back Office" feed includes expired/withdrawn statuses; an IDX feed only has actives (disappearances are detected instead). Apply via REBNY RLS "Direct Data License" or a pre-licensed vendor; fees are quoted after review. |
+| **RentCast API** (rentcast.io) | Built, needs free API key | Licensed listing data from public sources, including listings that came off the market (Inactive + removed date). Free plan: 50 requests/month; the daily run uses one. Co-op coverage may be thinner than RLS. |
 | OneKey MLS or another MLS | Same adapter | Set `RESO_*` to that MLS's Web API. |
 | Spreadsheet import | Works now | Upload an export from RLS / Perchwell / OneKey / CRM on *Data & imports* (status export, or a full "everything active today" snapshot). |
 | StreetEasy, Zillow, Realtor.com, Redfin, Compass | **Not scraped** | Their terms prohibit automated collection and they block bots; their luxury inventory comes from RLS anyway. |

@@ -7,8 +7,9 @@ from .. import normalize
 # Normalised statuses
 ACTIVE, PENDING, CLOSED = "Active", "Pending", "Closed"
 EXPIRED, WITHDRAWN, CANCELED, OFF_MARKET, UNKNOWN = "Expired", "Withdrawn", "Canceled", "Off market", "Unknown"
+REMOVED = "Removed"  # off the market, reason not given by the source
 ON_MARKET = {ACTIVE, PENDING}
-PULLED = {EXPIRED, WITHDRAWN, CANCELED, OFF_MARKET}
+PULLED = {EXPIRED, WITHDRAWN, CANCELED, OFF_MARKET, REMOVED}
 
 _STATUS = [
     (r"closed|sold|leased|rented", CLOSED),

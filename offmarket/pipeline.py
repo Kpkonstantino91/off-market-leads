@@ -9,7 +9,7 @@ from sqlalchemy import and_, or_, select
 from . import compliance, db, normalize, scoring, settings
 from .enrich import skiptrace
 from .public import acris, records
-from .sources import base, reso
+from .sources import base, rentcast, reso
 
 log = logging.getLogger(__name__)
 OPEN_STATES = ("pulled", "contract_off")
@@ -372,6 +372,18 @@ def run_feed():
     return st
 
 
+def run_rentcast():
+    if not rentcast.enabled():
+        return {"skipped": "no RENTCAST_API_KEY"}
+    s = settings.get_all()
+    floor = int(s["min_price"] * (0.6 if s["use_high_price"] else 1))
+    rows = list(rentcast.fetch(floor))
+    with db.engine().begin() as conn:
+        st = ingest(conn, rows, s)
+    st["fetched"] = len(rows)
+    return st
+
+
 def import_rows(rows, full_snapshot, filename):
     s = settings.get_all()
     with db.engine().begin() as conn:
@@ -385,7 +397,7 @@ def import_rows(rows, full_snapshot, filename):
 
 
 def run_daily():
-    out = {"feed": _step("feed", run_feed)}
+    out = {"feed": _step("feed", run_feed), "rentcast": _step("rentcast", run_rentcast)}
     s = settings.get_all()
     out["sales"] = _step("sold_check", lambda: _with_conn(lambda c: check_sales(c, s)))
     out["score"] = _step("score", lambda: _with_conn(lambda c: {"scored": rescore(c)}))

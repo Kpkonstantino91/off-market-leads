@@ -16,6 +16,10 @@
         Covers what RLS members list, which is nearly every Manhattan and Brooklyn luxury listing (StreetEasy is fed from it).</div></td>
         <td>{% if feed_on %}<span class="pill ok">Connected</span>{% else %}<span class="pill warn">Needs credentials</span>{% endif %}</td>
         <td class="num">{{ by_source.get('reso', 0) }}</td></tr>
+      <tr><td><b>RentCast listings API</b><div class="sub">Daily: $5M+ listings in Manhattan and Brooklyn that came off the market.
+        Licensed data from public sources (not the MLS), so some co-ops may be missing. Free plan covers one request a day.</div></td>
+        <td>{% if rentcast_on %}<span class="pill ok">Connected</span>{% else %}<span class="pill warn">Needs API key</span>{% endif %}</td>
+        <td class="num">{{ by_source.get('rentcast', 0) }}</td></tr>
       <tr><td><b>Spreadsheet import</b><div class="sub">Exports from RLS, Perchwell, OneKey MLS or your CRM.</div></td>
         <td><span class="pill ok">Ready</span></td><td class="num">{{ by_source.get('csv', 0) }}</td></tr>
     </table>
